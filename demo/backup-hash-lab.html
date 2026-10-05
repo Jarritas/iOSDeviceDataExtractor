@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Backup Hash Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;700&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: herramienta de laboratorio — calculadora arriba, tabla de artefactos forenses abajo, columna única centrada */
+:root {
+  --bg: #eef1f4;
+  --surface: #ffffff;
+  --fg: #16202b;
+  --muted: #5b6878;
+  --line: #d3dae2;
+  --accent: #b4590f;
+  --accent-soft: #fbeedd;
+  --ok: #1f7a4d;
+  --code-bg: #f5f7f9;
+  --f-display: "Familjen Grotesk", "Helvetica Neue", Arial, sans-serif;
+  --f-body: "Instrument Sans", system-ui, -apple-system, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12171d; --surface: #1a2129; --fg: #e3e8ee; --muted: #93a0af; --line: #2c3540;
+    --accent: #f0a052; --accent-soft: #3a2a19; --ok: #5cc995; --code-bg: #151b22; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12171d; --surface: #1a2129; --fg: #e3e8ee; --muted: #93a0af; --line: #2c3540;
+  --accent: #f0a052; --accent-soft: #3a2a19; --ok: #5cc995; --code-bg: #151b22; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--f-body); font-size: 15px; line-height: 1.55; }
+.wrap { max-width: 920px; margin: 0 auto; padding-inline: 16px; padding-block: 32px 56px; display: grid; gap: 28px; }
+header { display: grid; gap: 8px; }
+.eyebrow { font-family: var(--f-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+h1 { font-family: var(--f-display); font-weight: 700; font-size: clamp(30px, 5vw, 44px); line-height: 1.05; margin: 0; text-wrap: balance; }
+h2 { font-family: var(--f-display); font-weight: 700; font-size: 20px; margin: 0; }
+.lede { color: var(--muted); max-width: 64ch; margin: 0; }
+code, .mono { font-family: var(--f-mono); }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 20px; display: grid; gap: 16px; min-width: 0; }
+.row { display: grid; grid-template-columns: minmax(0, 220px) minmax(0, 1fr); gap: 12px; }
+@media (max-width: 560px) { .row { grid-template-columns: 1fr; } }
+label { display: grid; gap: 6px; font-size: 13px; font-weight: 600; color: var(--muted); }
+input, select { font: 14px var(--f-mono); color: var(--fg); background: var(--code-bg); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; width: 100%; min-width: 0; }
+input:focus-visible, select:focus-visible, button:focus-visible, tr:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.flow { display: grid; gap: 10px; }
+.step { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 12px; align-items: baseline; }
+@media (max-width: 560px) { .step { grid-template-columns: 1fr; gap: 2px; } }
+.step .k { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.step .v { font-family: var(--f-mono); font-size: 14px; overflow-wrap: anywhere; background: var(--code-bg); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; }
+.v .dir { background: var(--accent-soft); color: var(--accent); font-weight: 600; border-radius: 3px; padding: 0 2px; }
+.v.result { font-size: 15px; }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+button { font: 600 13px var(--f-body); color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 8px 12px; cursor: pointer; }
+button:hover { border-color: var(--accent); color: var(--accent); }
+.toast { font-size: 13px; color: var(--ok); }
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th { text-align: left; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 600; padding: 8px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+td { padding: 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+tbody tr { cursor: pointer; }
+tbody tr:hover td { background: var(--code-bg); }
+tbody tr.active td { background: var(--accent-soft); }
+td .what { font-weight: 600; }
+td .src { font-family: var(--f-mono); font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+td.h { font-family: var(--f-mono); font-size: 13px; white-space: nowrap; }
+.tree { font-family: var(--f-mono); font-size: 13px; line-height: 1.7; background: var(--code-bg); border: 1px solid var(--line); border-radius: 6px; padding: 12px 14px; overflow-x: auto; white-space: pre; margin: 0; }
+.tree .c { color: var(--muted); }
+.note { color: var(--muted); font-size: 13px; margin: 0; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; }
+@media (prefers-reduced-motion: no-preference) { tbody tr td { transition: background .15s; } }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Demo · iOSDeviceDataExtractor</span>
+    <h1>Backup Hash Lab</h1>
+    <p class="lede">Un respaldo de iPhone no guarda los archivos con su nombre real. Cada archivo se renombra con el SHA-1 de <code>Dominio-ruta/relativa</code> y se coloca en una carpeta con los dos primeros caracteres del hash. Escribe una ruta y mira dónde quedaría dentro del respaldo.</p>
+  </header>
+
+  <section class="panel" aria-labelledby="calc-h">
+    <h2 id="calc-h">Calculadora</h2>
+    <div class="row">
+      <label for="domain">Dominio
+        <select id="domain">
+          <option>HomeDomain</option>
+          <option>CameraRollDomain</option>
+          <option>MediaDomain</option>
+          <option>KeychainDomain</option>
+          <option>WirelessDomain</option>
+          <option>RootDomain</option>
+          <option>SystemPreferencesDomain</option>
+          <option>AppDomain-com.apple.mobilesafari</option>
+          <option>AppDomainGroup-group.net.whatsapp.WhatsApp.shared</option>
+        </select>
+      </label>
+      <label for="path">Ruta relativa
+        <input id="path" value="Library/SMS/sms.db" spellcheck="false" autocomplete="off">
+      </label>
+    </div>
+    <div class="flow" aria-live="polite">
+      <div class="step"><span class="k">Entrada</span><span class="v" id="o-input"></span></div>
+      <div class="step"><span class="k">SHA-1</span><span class="v" id="o-hash"></span></div>
+      <div class="step"><span class="k">En disco</span><span class="v result" id="o-disk"></span></div>
+    </div>
+    <div class="actions">
+      <button type="button" id="copy">Copiar ruta en disco</button>
+      <span class="toast" id="toast" hidden>Copiado</span>
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="art-h">
+    <h2 id="art-h">Artefactos forenses comunes</h2>
+    <p class="note">Toca una fila para cargarla en la calculadora. Los hashes se calculan en tu navegador al abrir la página.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Artefacto</th><th>Archivo en el respaldo</th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="grid2">
+    <div class="panel">
+      <h2>Estructura del respaldo</h2>
+      <pre class="tree">&lt;UDID&gt;/
+├─ Info.plist      <span class="c"># modelo, iOS, IMEI</span>
+├─ Manifest.plist  <span class="c"># ¿cifrado? claves</span>
+├─ Manifest.db     <span class="c"># índice de archivos</span>
+├─ Status.plist    <span class="c"># estado del respaldo</span>
+├─ 3d/
+│  └─ 3d0d7e5f…3a28  <span class="c"># sms.db</span>
+└─ 31/
+   └─ 31bb7ba8…e442  <span class="c"># contactos</span></pre>
+    </div>
+    <div class="panel">
+      <h2>Qué hace el módulo</h2>
+      <p class="note">El plugin de Autopsy crea el respaldo del dispositivo, lee <code>Manifest.db</code> para mapear cada hash a su ruta original y reconstruye el árbol de carpetas. Si el respaldo está cifrado, primero descifra la base con la contraseña. Al final puede comprimir todo en un ZIP listo para iLEAPP.</p>
+      <p class="note">Esta página reproduce solo el paso del hash, que es el que permite encontrar un archivo concreto sin abrir la base.</p>
+    </div>
+  </section>
+</div>
+
+<script>
+const ARTIFACTS = [
+  ["Mensajes SMS / iMessage", "HomeDomain", "Library/SMS/sms.db"],
+  ["Contactos", "HomeDomain", "Library/AddressBook/AddressBook.sqlitedb"],
+  ["Historial de llamadas", "HomeDomain", "Library/CallHistoryDB/CallHistory.storedata"],
+  ["Fotos (base de datos)", "CameraRollDomain", "Media/PhotoData/Photos.sqlite"],
+  ["Notas", "AppDomainGroup-group.com.apple.notes", "NoteStore.sqlite"],
+  ["Historial de Safari", "HomeDomain", "Library/Safari/History.db"],
+  ["Chats de WhatsApp", "AppDomainGroup-group.net.whatsapp.WhatsApp.shared", "ChatStorage.sqlite"],
+  ["Calendario", "HomeDomain", "Library/Calendar/Calendar.sqlitedb"]
+];
+
+const $ = id => document.getElementById(id);
+const esc = s => s.replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+async function sha1(text) {
+  const buf = await crypto.subtle.digest("SHA-1", new TextEncoder().encode(text));
+  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+const diskHtml = h => `<span class="dir">${h.slice(0, 2)}</span>/<span class="dir">${h.slice(0, 2)}</span>${h.slice(2)}`;
+
+function ensureOption(domain) {
+  const sel = $("domain");
+  if (![...sel.options].some(o => o.value === domain)) sel.add(new Option(domain, domain));
+  sel.value = domain;
+}
+
+let seq = 0;
+async function update() {
+  const key = `${$("domain").value}-${$("path").value}`;
+  const mine = ++seq;
+  const h = await sha1(key);
+  if (mine !== seq) return;
+  $("o-input").textContent = key;
+  $("o-hash").textContent = h;
+  $("o-disk").innerHTML = diskHtml(h);
+  $("o-disk").dataset.path = `${h.slice(0, 2)}/${h}`;
+  document.querySelectorAll("#rows tr").forEach(tr => tr.classList.toggle("active", tr.dataset.key === key));
+}
+
+async function buildTable() {
+  const rows = await Promise.all(ARTIFACTS.map(async ([name, d, p]) => ({ name, d, p, h: await sha1(`${d}-${p}`) })));
+  $("rows").innerHTML = rows.map(r => `
+    <tr tabindex="0" data-key="${esc(r.d + "-" + r.p)}" data-d="${esc(r.d)}" data-p="${esc(r.p)}">
+      <td><div class="what">${esc(r.name)}</div><div class="src">${esc(r.d)}-${esc(r.p)}</div></td>
+      <td class="h">${r.h.slice(0, 2)}/${r.h.slice(0, 12)}…</td>
+    </tr>`).join("");
+  $("rows").querySelectorAll("tr").forEach(tr => {
+    const pick = () => { ensureOption(tr.dataset.d); $("path").value = tr.dataset.p; update(); $("path").scrollIntoView({ block: "center", behavior: "smooth" }); };
+    tr.addEventListener("click", pick);
+    tr.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(); } });
+  });
+  update();
+}
+
+$("domain").addEventListener("change", update);
+$("path").addEventListener("input", update);
+$("copy").addEventListener("click", () => {
+  const text = $("o-disk").dataset.path || "";
+  const done = () => { $("toast").hidden = false; setTimeout(() => $("toast").hidden = true, 1500); };
+  navigator.clipboard.writeText(text).then(done).catch(() => {
+    const r = document.createRange(); r.selectNodeContents($("o-disk"));
+    const s = getSelection(); s.removeAllRanges(); s.addRange(r);
+  });
+});
+
+buildTable();
+</script>
+</body>
+</html>
